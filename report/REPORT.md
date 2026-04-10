@@ -11,29 +11,32 @@
 ### Cosine Similarity (Ex 1.1)
 
 **High cosine similarity nghĩa là gì?**
-> *Viết 1-2 câu:*
+> High cosine similarity nghĩa là hai vector đang có hướng khá giống nhau, nên nội dung mà chúng biểu diễn cũng thường gần nghĩa với nhau. Nói đơn giản thì điểm càng cao thì hai câu càng dễ nói về cùng một ý hoặc cùng một chủ đề.
 
 **Ví dụ HIGH similarity:**
-- Sentence A:
-- Sentence B:
-- Tại sao tương đồng:
+- Sentence A: "Tôi thích học machine learning."
+- Sentence B: "Mình rất hứng thú với việc học về học máy."
+- Tại sao tương đồng: Hai câu gần như cùng nói về sở thích học machine learning, chỉ khác cách diễn đạt.
 
 **Ví dụ LOW similarity:**
-- Sentence A:
-- Sentence B:
-- Tại sao khác:
+- Sentence A: "Hôm nay trời mưa rất to."
+- Sentence B: "Tôi đang nấu bữa tối trong bếp."
+- Tại sao khác: Hai câu không cùng ngữ cảnh và không có ý nghĩa liên quan rõ ràng.
 
 **Tại sao cosine similarity được ưu tiên hơn Euclidean distance cho text embeddings?**
-> *Viết 1-2 câu:*
+> Với text embeddings thì mình thường quan tâm đến hướng của vector hơn là độ dài của nó. Cosine similarity đo mức độ giống nhau về hướng nên ổn hơn Euclidean distance, vì khoảng cách Euclidean có thể bị ảnh hưởng bởi magnitude của vector.
 
 ### Chunking Math (Ex 1.2)
 
 **Document 10,000 ký tự, chunk_size=500, overlap=50. Bao nhiêu chunks?**
-> *Trình bày phép tính:*
-> *Đáp án:*
+> Trình bày phép tính:  
+> Step size = 500 - 50 = 450.  
+> Số chunks = ceil((10000 - 500) / 450) + 1 = ceil(9500 / 450) + 1 = 22.
+>
+> Đáp án: 22 chunks.
 
 **Nếu overlap tăng lên 100, chunk count thay đổi thế nào? Tại sao muốn overlap nhiều hơn?**
-> *Viết 1-2 câu:*
+> Nếu overlap tăng lên 100 thì step size còn 400, nên số chunks sẽ tăng lên thành 25 chunks. Mình muốn overlap nhiều hơn để giữ được ngữ cảnh giữa các chunk tốt hơn, nhất là khi một ý bị cắt qua ranh giới chunk.
 
 ---
 
@@ -119,31 +122,31 @@ Giải thích cách tiếp cận của bạn khi implement các phần chính tr
 ### Chunking Functions
 
 **`SentenceChunker.chunk`** — approach:
-> *Viết 2-3 câu: dùng regex gì để detect sentence? Xử lý edge case nào?*
+> Mình dùng regex `(?<=[.!?])(?:\s+|\n+)` để tách câu dựa trên dấu kết thúc câu rồi split theo khoảng trắng hoặc xuống dòng phía sau. Sau đó mình `strip()` từng câu để bỏ khoảng trắng thừa, và nếu text rỗng thì trả về `[]` luôn. Với case text không tách được câu rõ ràng thì mình vẫn giữ nguyên phần text đó để không bị mất nội dung.
 
 **`RecursiveChunker.chunk` / `_split`** — approach:
-> *Viết 2-3 câu: algorithm hoạt động thế nào? Base case là gì?*
+> Mình cho chunker thử từng separator theo thứ tự ưu tiên, từ đoạn lớn như `\n\n` rồi đến `\n`, `. `, space, và cuối cùng là cắt thẳng theo `chunk_size`. Nếu một đoạn vẫn còn quá dài thì nó sẽ gọi đệ quy xuống separator tiếp theo để chia nhỏ hơn. Base case là khi text đã ngắn hơn `chunk_size` hoặc không còn separator nào để thử nữa thì mình cắt theo độ dài cố định.
 
 ### EmbeddingStore
 
 **`add_documents` + `search`** — approach:
-> *Viết 2-3 câu: lưu trữ thế nào? Tính similarity ra sao?*
+> Mình lưu document dưới dạng record gồm `id`, `content`, `metadata` và vector embedding của content. Khi search thì mình embed query trước, rồi tính dot product với embedding của từng chunk và sắp xếp theo score giảm dần. Cách này đơn giản nhưng đủ ổn cho bài lab và chạy tốt với mock embedding.
 
 **`search_with_filter` + `delete_document`** — approach:
-> *Viết 2-3 câu: filter trước hay sau? Delete bằng cách nào?*
+> Mình filter metadata trước rồi mới search trên tập con đó, để query không bị lẫn với tài liệu ngoài nhóm điều kiện. `delete_document` thì mình xoá tất cả record có `metadata["doc_id"]` trùng với `doc_id` cần xoá, nên một document có nhiều chunk vẫn được dọn sạch hết.
 
 ### KnowledgeBaseAgent
 
 **`answer`** — approach:
-> *Viết 2-3 câu: prompt structure? Cách inject context?*
+> Mình lấy top-k chunk từ store rồi ghép thành phần `Context` theo từng chunk để model dễ đọc. Prompt có phần hướng dẫn rõ là chỉ trả lời dựa trên context, nếu không thấy thông tin thì nói không biết. Sau đó mình gọi thẳng `llm_fn(prompt)` và trả về kết quả cuối cùng.
 
 ### Test Results
 
 ```
-# Paste output of: pytest tests/ -v
+============================== 42 passed in 0.11s ==============================
 ```
 
-**Số tests pass:** __ / __
+**Số tests pass:** 42 / 42
 
 ---
 
